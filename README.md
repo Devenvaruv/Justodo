@@ -1,14 +1,11 @@
 # Justodo
 
-A Vercel-ready React and TypeScript todo app backed by MongoDB Atlas.
-
 ## Task Types
 
 - One-time tasks complete once and stay completed.
 - Recurring tasks support daily, weekly, monthly, or custom day intervals. Completing one schedules the next due date only when the task was created with a due date.
 - Recurring completions can store an optional numeric value, which is graphed from completion history.
 - Completing a recurring task again on the same calendar date adds to that date's value instead of adding a duplicate graph point.
-- Recurring completion dates reset at midnight in `America/Los_Angeles`, so the day follows San Francisco local time.
 - Long-running tasks keep progress history with percentage updates.
 - Deleting a task sets `deletedAt` instead of removing the MongoDB document.
 
@@ -36,18 +33,6 @@ A Vercel-ready React and TypeScript todo app backed by MongoDB Atlas.
    ```
 
    `npm run dev` serves the React app and the `/api/tasks` handler locally. Use `npm run dev:vercel` when you specifically want the Vercel CLI dev server.
-
-## Vercel
-
-Set these environment variables in the Vercel project:
-
-```bash
-MONGODB_URI=mongodb+srv://...
-MONGODB_DB=justodo
-JUSTODO_TIMEZONE=America/Los_Angeles
-```
-
-The frontend calls `/api/tasks`, and the serverless function connects to MongoDB Atlas.
 
 ## Automation API
 
@@ -97,6 +82,6 @@ Set these Vercel environment variables for Production, Preview, and Development 
 ```bash
 MONGODB_URI=mongodb+srv://...
 MONGODB_DB=justodo
-JUSTODO_API_TOKEN=make-this-long-and-random
+JUSTODO_API_TOKEN=
 JUSTODO_TIMEZONE=America/Los_Angeles
 ```
