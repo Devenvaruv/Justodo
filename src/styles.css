@@ -584,6 +584,28 @@ h3 {
   background: rgba(255, 255, 255, 0.34);
 }
 
+.task-card.period-done {
+  border-color: rgba(17, 26, 24, 0.08);
+  background:
+    linear-gradient(145deg, rgba(248, 250, 249, 0.52), rgba(239, 243, 242, 0.3)),
+    rgba(255, 255, 255, 0.26);
+  opacity: 0.68;
+  filter: saturate(0.62);
+}
+
+.task-card.period-done .task-icon,
+.task-card.period-done .task-meta span,
+.task-card.period-done .type-chip {
+  background: rgba(255, 255, 255, 0.34);
+  color: var(--muted);
+}
+
+.task-card.period-done h3,
+.task-card.period-done .task-details,
+.task-card.period-done .history {
+  color: var(--muted);
+}
+
 .task-main {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);

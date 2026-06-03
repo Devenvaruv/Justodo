@@ -105,6 +105,7 @@ const typeIcons = {
 };
 
 const RESET_TIME_ZONE = "America/Los_Angeles";
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -143,7 +144,13 @@ export default function App() {
   const counts = useMemo(() => {
     const categoryCounts = categoryItems.reduce(
       (totals, item) => {
-        totals[item.id] = tasks.filter((task) => !task.deletedAt && task.status === "active" && taskMatchesCategory(task, item.id)).length;
+        totals[item.id] = tasks.filter(
+          (task) =>
+            !task.deletedAt &&
+            task.status === "active" &&
+            taskMatchesCategory(task, item.id) &&
+            shouldCountTaskInCategory(task, item.id)
+        ).length;
         return totals;
       },
       {} as Record<TaskCategory, number>
@@ -181,7 +188,7 @@ export default function App() {
         return !task.deletedAt;
       })
       .filter((task) => taskMatchesCategory(task, selectedView))
-      .sort(sortTasks);
+      .sort(sortTasksForView);
   }, [selectedView, statusFilter, tasks]);
 
   async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
@@ -611,10 +618,11 @@ interface TaskRowProps {
 function TaskRow({ task, disabled, onComplete, onProgress, onDelete, onRestore }: TaskRowProps) {
   const Icon = typeIcons[task.type];
   const isDeleted = Boolean(task.deletedAt);
+  const isDoneForCurrentPeriod = !isDeleted && isRecurringTaskDoneForCurrentPeriod(task);
   const progress = task.progress ?? 0;
 
   return (
-    <article className={`task-card ${isDeleted ? "deleted" : ""}`}>
+    <article className={`task-card ${isDeleted ? "deleted" : ""} ${isDoneForCurrentPeriod ? "period-done" : ""}`}>
       <div className="task-main">
         <div className="task-icon" aria-hidden="true">
           <Icon size={20} />
@@ -928,6 +936,25 @@ function sortTasks(first: Task, second: Task) {
   return new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime();
 }
 
+function sortTasksForView(first: Task, second: Task) {
+  const firstDoneForPeriod = isRecurringTaskDoneForCurrentPeriod(first);
+  const secondDoneForPeriod = isRecurringTaskDoneForCurrentPeriod(second);
+
+  if (firstDoneForPeriod !== secondDoneForPeriod) {
+    return firstDoneForPeriod ? 1 : -1;
+  }
+
+  return sortTasks(first, second);
+}
+
+function shouldCountTaskInCategory(task: Task, category: TaskCategory) {
+  if (category === "daily" || category === "weekly" || category === "monthly") {
+    return !isRecurringTaskDoneForCurrentPeriod(task);
+  }
+
+  return true;
+}
+
 function taskMatchesCategory(task: Task, category: TaskCategory) {
   return getTaskCategory(task) === category;
 }
@@ -1060,6 +1087,69 @@ function getProgressInputValue(value: string) {
   }
 
   return Math.max(0, Math.min(100, Math.round(numericValue)));
+}
+
+function isRecurringTaskDoneForCurrentPeriod(task: Task) {
+  if (task.type !== "recurring" || !task.recurringHistory?.length) {
+    return false;
+  }
+
+  const latestCompletion = getLatestRecurringCompletion(task);
+
+  if (!latestCompletion) {
+    return false;
+  }
+
+  const mode = task.recurrence?.mode || "daily";
+  const currentDateKey = getResetDateKey(new Date());
+  const completedDateKey = getGraphDateKey(latestCompletion.completedOn, latestCompletion.completedAt);
+
+  if (mode === "daily") {
+    return completedDateKey === currentDateKey;
+  }
+
+  const currentDayNumber = getDateKeyDayNumber(currentDateKey);
+
+  if (mode === "monthly") {
+    return currentDayNumber < getDateKeyDayNumber(addMonthsToDateKey(completedDateKey, 1));
+  }
+
+  const completedDayNumber = getDateKeyDayNumber(completedDateKey);
+  const intervalDays = mode === "weekly" ? 7 : Math.max(1, Math.floor(task.recurrence?.intervalDays || 1));
+
+  return currentDayNumber < completedDayNumber + intervalDays;
+}
+
+function getLatestRecurringCompletion(task: Task) {
+  const entries = task.recurringHistory?.slice().sort(sortGraphEntries) || [];
+  return entries[entries.length - 1] || null;
+}
+
+function getDateKeyDayNumber(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / DAY_IN_MS);
+}
+
+function addMonthsToDateKey(dateKey: string, months: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const nextDate = new Date(Date.UTC(year, month - 1, day));
+  const originalDay = nextDate.getUTCDate();
+
+  nextDate.setUTCDate(1);
+  nextDate.setUTCMonth(nextDate.getUTCMonth() + Math.max(1, months));
+
+  const lastDayOfMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+  nextDate.setUTCDate(Math.min(originalDay, lastDayOfMonth));
+
+  return formatUtcDateKey(nextDate);
+}
+
+function formatUtcDateKey(date: Date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function getRecurringValueEntries(task: Task) {
