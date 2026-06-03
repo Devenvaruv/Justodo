@@ -123,6 +123,7 @@ export default function App() {
   const [recurringTask, setRecurringTask] = useState<Task | null>(null);
   const [recurringNote, setRecurringNote] = useState("");
   const [recurringValue, setRecurringValue] = useState("");
+  const [recurringDetails, setRecurringDetails] = useState("");
 
   const loadTasks = useCallback(async () => {
     setIsLoading(true);
@@ -224,16 +225,17 @@ export default function App() {
     }
   }
 
-  async function handleComplete(task: Task, note = "", value?: number | null) {
+  async function handleComplete(task: Task, note = "", value?: number | null, details?: string) {
     setIsSaving(true);
     setError("");
 
     try {
-      const updatedTask = await completeTask(task.id, note, value);
+      const updatedTask = await completeTask(task.id, note, value, details);
       replaceTask(updatedTask);
       setRecurringTask(null);
       setRecurringNote("");
       setRecurringValue("");
+      setRecurringDetails("");
     } catch (taskError) {
       setError(taskError instanceof Error ? taskError.message : "Could not complete task");
     } finally {
@@ -327,6 +329,7 @@ export default function App() {
       setRecurringTask(task);
       setRecurringNote("");
       setRecurringValue("");
+      setRecurringDetails(task.details || "");
       return;
     }
 
@@ -579,7 +582,7 @@ export default function App() {
             className="modal-form"
             onSubmit={(event) => {
               event.preventDefault();
-              void handleComplete(recurringTask, recurringNote, parseOptionalNumber(recurringValue));
+              void handleComplete(recurringTask, recurringNote, parseOptionalNumber(recurringValue), recurringDetails);
             }}
           >
             <p className="modal-task-title">{recurringTask.title}</p>
@@ -592,6 +595,15 @@ export default function App() {
                 value={recurringValue}
                 onChange={(event) => setRecurringValue(event.target.value)}
                 placeholder="Optional"
+              />
+            </label>
+            <label className="field">
+              <span>Task Note</span>
+              <textarea
+                value={recurringDetails}
+                onChange={(event) => setRecurringDetails(event.target.value)}
+                rows={5}
+                placeholder="Persistent notes for this task"
               />
             </label>
             <label className="field">

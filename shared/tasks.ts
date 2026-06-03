@@ -59,6 +59,7 @@ export type TaskActionRequest =
       action: "complete";
       note?: string;
       value?: number | null;
+      details?: string;
     }
   | {
       action: "progress";

@@ -86,7 +86,7 @@ async function updateTask(request: VercelRequest, response: VercelResponse) {
   }
 
   if (body.action === "complete") {
-    await completeTask(collection, task, normalizeText(body.note), normalizeCompletionValue(body.value));
+    await completeTask(collection, task, normalizeText(body.note), normalizeCompletionValue(body.value), body.details);
     await sendUpdatedTask(collection, id, response);
     return;
   }
@@ -104,7 +104,8 @@ async function completeTask(
   collection: Awaited<ReturnType<typeof getTasksCollection>>,
   task: TaskDocument,
   note: string,
-  value: number | null
+  value: number | null,
+  details?: string
 ) {
   const now = new Date();
   const nowIso = now.toISOString();
@@ -134,22 +135,27 @@ async function completeTask(
 
     if (existingEntry) {
       const combinedValue = addRecurringCompletionValues(matchingEntries, value);
+      const updates: Record<string, string | number | null> = {
+        status: "active",
+        dueAt: nextDueAt,
+        lastCompletedAt: nowIso,
+        updatedAt: nowIso,
+        completionCount: getUniqueRecurringCompletionCount(task, completedOn),
+        "recurringHistory.$[entry].completedAt": nowIso,
+        "recurringHistory.$[entry].completedOn": completedOn,
+        "recurringHistory.$[entry].note": note,
+        "recurringHistory.$[entry].value": combinedValue,
+        "recurringHistory.$[entry].nextDueAt": nextDueAt
+      };
+
+      if (typeof details === "string") {
+        updates.details = normalizeText(details);
+      }
 
       await collection.updateOne(
         { _id: task._id },
         {
-          $set: {
-            status: "active",
-            dueAt: nextDueAt,
-            lastCompletedAt: nowIso,
-            updatedAt: nowIso,
-            completionCount: getUniqueRecurringCompletionCount(task, completedOn),
-            "recurringHistory.$[entry].completedAt": nowIso,
-            "recurringHistory.$[entry].completedOn": completedOn,
-            "recurringHistory.$[entry].note": note,
-            "recurringHistory.$[entry].value": combinedValue,
-            "recurringHistory.$[entry].nextDueAt": nextDueAt
-          }
+          $set: updates
         },
         {
           arrayFilters: [{ "entry.id": existingEntry.id }]
@@ -176,15 +182,21 @@ async function completeTask(
       return;
     }
 
+    const updates: Record<string, string | null> = {
+      status: "active",
+      dueAt: nextDueAt,
+      lastCompletedAt: nowIso,
+      updatedAt: nowIso
+    };
+
+    if (typeof details === "string") {
+      updates.details = normalizeText(details);
+    }
+
     await collection.updateOne(
       { _id: task._id },
       {
-        $set: {
-          status: "active",
-          dueAt: nextDueAt,
-          lastCompletedAt: nowIso,
-          updatedAt: nowIso
-        },
+        $set: updates,
         $inc: {
           completionCount: 1
         },

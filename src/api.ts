@@ -23,11 +23,12 @@ export async function createTask(payload: CreateTaskRequest) {
   return data.task;
 }
 
-export async function completeTask(id: string, note = "", value?: number | null) {
+export async function completeTask(id: string, note = "", value?: number | null, details?: string) {
   return updateTask(id, {
     action: "complete",
     note,
-    value
+    value,
+    details
   });
 }
 
