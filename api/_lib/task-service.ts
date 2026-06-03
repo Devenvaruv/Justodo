@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
-import type { CreateTaskRequest, Recurrence, Task, TaskType } from "../../shared/tasks";
-import { getTasksCollection, serializeTask, type TaskDocument } from "./mongo";
+import type { CreateTaskRequest, Recurrence, Task, TaskType } from "../../shared/tasks.js";
+import { getTasksCollection, serializeTask, type TaskDocument } from "./mongo.js";
 
 const VALID_TASK_TYPES = new Set<TaskType>(["one-time", "recurring", "long-running"]);
 

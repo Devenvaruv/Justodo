@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { ObjectId } from "mongodb";
-import { getTasksCollection, serializeTask, type TaskDocument } from "./_lib/mongo";
+import { getTasksCollection, serializeTask, type TaskDocument } from "./_lib/mongo.js";
 import {
   ApiError,
   clampProgress,
@@ -8,8 +8,8 @@ import {
   insertTask,
   normalizeCompletionValue,
   normalizeText
-} from "./_lib/task-service";
-import type { CreateTaskRequest, TaskActionRequest } from "../shared/tasks";
+} from "./_lib/task-service.js";
+import type { CreateTaskRequest, TaskActionRequest } from "../shared/tasks.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {

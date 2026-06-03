@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId, type Collection } from "mongodb";
-import type { Task } from "../../shared/tasks";
+import type { Task } from "../../shared/tasks.js";
 
 export type TaskDocument = Omit<Task, "id"> & {
   _id: ObjectId;

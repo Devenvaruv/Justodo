@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ApiError, insertTask } from "../_lib/task-service";
-import type { CreateTaskRequest } from "../../shared/tasks";
+import { ApiError, insertTask } from "../_lib/task-service.js";
+import type { CreateTaskRequest } from "../../shared/tasks.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
