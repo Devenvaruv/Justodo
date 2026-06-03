@@ -64,6 +64,7 @@ export type TaskActionRequest =
       action: "progress";
       percent: number;
       note: string;
+      details?: string;
     }
   | {
       action: "restore";

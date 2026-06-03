@@ -92,7 +92,7 @@ async function updateTask(request: VercelRequest, response: VercelResponse) {
   }
 
   if (body.action === "progress") {
-    await updateProgress(collection, task, body.percent, body.note);
+    await updateProgress(collection, task, body.percent, body.note, body.details);
     await sendUpdatedTask(collection, id, response);
     return;
   }
@@ -210,7 +210,8 @@ async function updateProgress(
   collection: Awaited<ReturnType<typeof getTasksCollection>>,
   task: TaskDocument,
   percent: number,
-  note: string
+  note: string,
+  details?: string
 ) {
   if (task.type !== "long-running") {
     throw new Error("Progress can only be updated on long-running tasks");
@@ -220,16 +221,21 @@ async function updateProgress(
   const progress = clampProgress(percent);
   const normalizedNote = normalizeText(note);
   const completedAt = progress >= 100 ? task.completedAt || now : null;
+  const updates: Record<string, string | number | null> = {
+    progress,
+    status: progress >= 100 ? "completed" : "active",
+    completedAt,
+    updatedAt: now
+  };
+
+  if (typeof details === "string") {
+    updates.details = normalizeText(details);
+  }
 
   await collection.updateOne(
     { _id: task._id },
     {
-      $set: {
-        progress,
-        status: progress >= 100 ? "completed" : "active",
-        completedAt,
-        updatedAt: now
-      },
+      $set: updates,
       $push: {
         progressHistory: {
           id: new ObjectId().toHexString(),

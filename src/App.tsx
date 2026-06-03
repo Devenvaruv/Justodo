@@ -119,6 +119,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [progressTask, setProgressTask] = useState<Task | null>(null);
   const [progressPercent, setProgressPercent] = useState("0");
+  const [progressDetails, setProgressDetails] = useState("");
   const [recurringTask, setRecurringTask] = useState<Task | null>(null);
   const [recurringNote, setRecurringNote] = useState("");
   const [recurringValue, setRecurringValue] = useState("");
@@ -252,9 +253,10 @@ export default function App() {
 
     try {
       const progress = getProgressInputValue(progressPercent);
-      const updatedTask = await recordProgress(progressTask.id, progress, `Progress set to ${progress}%`);
+      const updatedTask = await recordProgress(progressTask.id, progress, `Progress set to ${progress}%`, progressDetails);
       replaceTask(updatedTask);
       setProgressTask(null);
+      setProgressDetails("");
     } catch (taskError) {
       setError(taskError instanceof Error ? taskError.message : "Could not save progress");
     } finally {
@@ -305,6 +307,7 @@ export default function App() {
   function openProgressDialog(task: Task) {
     setProgressTask(task);
     setProgressPercent(String(task.progress ?? 0));
+    setProgressDetails(task.details || "");
   }
 
   function openCreateDialog(category = getDefaultCreateCategory(selectedView)) {
@@ -548,6 +551,15 @@ export default function App() {
                 <span>0%</span>
                 <span>100%</span>
               </div>
+            </label>
+            <label className="field">
+              <span>Project Note</span>
+              <textarea
+                value={progressDetails}
+                onChange={(event) => setProgressDetails(event.target.value)}
+                rows={5}
+                placeholder="Persistent notes for this project"
+              />
             </label>
             <div className="modal-actions">
               <button type="button" className="text-button" onClick={() => setProgressTask(null)}>

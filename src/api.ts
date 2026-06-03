@@ -31,11 +31,12 @@ export async function completeTask(id: string, note = "", value?: number | null)
   });
 }
 
-export async function recordProgress(id: string, percent: number, note: string) {
+export async function recordProgress(id: string, percent: number, note: string, details?: string) {
   return updateTask(id, {
     action: "progress",
     percent,
-    note
+    note,
+    details
   });
 }
 
