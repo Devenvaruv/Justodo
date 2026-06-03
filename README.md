@@ -1,5 +1,7 @@
 # Justodo
 
+URL: https://justodo-one.vercel.app/
+
 ## Task Types
 
 - One-time tasks complete once and stay completed.
@@ -22,7 +24,7 @@
    ```bash
    MONGODB_URI=mongodb+srv://...
    MONGODB_DB=justodo
-   JUSTODO_API_TOKEN=make-this-long-and-random
+   JUSTODO_API_TOKEN=random
    JUSTODO_TIMEZONE=America/Los_Angeles
    ```
 
@@ -32,7 +34,7 @@
    npm run dev
    ```
 
-   `npm run dev` serves the React app and the `/api/tasks` handler locally. Use `npm run dev:vercel` when you specifically want the Vercel CLI dev server.
+   `npm run dev` serves the React app and the `/api/tasks` handler locally.
 
 ## Automation API
 
@@ -47,7 +49,7 @@ Authenticate with either `Authorization: Bearer <JUSTODO_API_TOKEN>` or `x-api-k
 Example one-time task:
 
 ```bash
-curl -X POST http://localhost:3000/api/automation/tasks \
+curl -X POST https://justodo-one.vercel.app/api/automation/tasks \
   -H "Authorization: Bearer $JUSTODO_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title":"Follow up with recruiter","type":"one-time","details":"Send note before noon"}'
@@ -56,7 +58,7 @@ curl -X POST http://localhost:3000/api/automation/tasks \
 Example daily recurring task:
 
 ```bash
-curl -X POST http://localhost:3000/api/automation/tasks \
+curl -X POST https://justodo-one.vercel.app/api/automation/tasks \
   -H "Authorization: Bearer $JUSTODO_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title":"Apply to jobs","type":"recurring","recurrence":{"mode":"daily","intervalDays":1}}'
@@ -65,23 +67,9 @@ curl -X POST http://localhost:3000/api/automation/tasks \
 Example long-running task:
 
 ```bash
-curl -X POST http://localhost:3000/api/automation/tasks \
+curl -X POST https://justodo-one.vercel.app/api/automation/tasks \
   -H "Authorization: Bearer $JUSTODO_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title":"Portfolio rebuild","type":"long-running","progress":10}'
 ```
 
-When hosted on Vercel, use your deployed domain instead:
-
-```text
-https://your-project.vercel.app/api/automation/tasks
-```
-
-Set these Vercel environment variables for Production, Preview, and Development as needed:
-
-```bash
-MONGODB_URI=mongodb+srv://...
-MONGODB_DB=justodo
-JUSTODO_API_TOKEN=
-JUSTODO_TIMEZONE=America/Los_Angeles
-```
