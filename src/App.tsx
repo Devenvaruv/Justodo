@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BarChart3,
@@ -124,6 +124,7 @@ export default function App() {
   const [recurringNote, setRecurringNote] = useState("");
   const [recurringValue, setRecurringValue] = useState("");
   const [recurringDetails, setRecurringDetails] = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const loadTasks = useCallback(async () => {
     setIsLoading(true);
@@ -142,6 +143,18 @@ export default function App() {
   useEffect(() => {
     void loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    if (!isCreateModalOpen) {
+      return;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [isCreateModalOpen]);
 
   const counts = useMemo(() => {
     const categoryCounts = categoryItems.reduce(
@@ -491,6 +504,7 @@ export default function App() {
             <label className="field">
               <span>Title</span>
               <input
+                ref={titleInputRef}
                 value={form.title}
                 onChange={(event) => setForm({ ...form, title: event.target.value })}
                 placeholder="Apply to role"
