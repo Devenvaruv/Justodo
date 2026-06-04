@@ -97,6 +97,20 @@ async function updateTask(request: VercelRequest, response: VercelResponse) {
     return;
   }
 
+  if (body.action === "details") {
+    await collection.updateOne(
+      { _id: task._id },
+      {
+        $set: {
+          details: normalizeText(body.details),
+          updatedAt: new Date().toISOString()
+        }
+      }
+    );
+    await sendUpdatedTask(collection, id, response);
+    return;
+  }
+
   response.status(400).json({ error: "Action is invalid" });
 }
 

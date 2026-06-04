@@ -7,6 +7,7 @@ URL: https://justodo-one.vercel.app/
 - One-time tasks complete once and stay completed.
 - Recurring tasks support daily, weekly, monthly, or custom day intervals. Completing one schedules the next due date only when the task was created with a due date.
 - Recurring tasks have editable persistent notes, and completions can store an optional numeric value that is graphed from completion history.
+- Task notes can be edited without completing the task.
 - Completing a recurring task again on the same calendar date adds to that date's value instead of adding a duplicate graph point.
 - Long-running tasks keep progress history with percentage updates and editable persistent project notes.
 - Deleting a task sets `deletedAt` instead of removing the MongoDB document.

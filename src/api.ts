@@ -41,6 +41,13 @@ export async function recordProgress(id: string, percent: number, note: string, 
   });
 }
 
+export async function updateTaskDetails(id: string, details: string) {
+  return updateTask(id, {
+    action: "details",
+    details
+  });
+}
+
 export async function restoreTask(id: string) {
   return updateTask(id, {
     action: "restore"

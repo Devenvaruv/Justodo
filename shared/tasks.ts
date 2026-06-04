@@ -68,5 +68,9 @@ export type TaskActionRequest =
       details?: string;
     }
   | {
+      action: "details";
+      details: string;
+    }
+  | {
       action: "restore";
     };

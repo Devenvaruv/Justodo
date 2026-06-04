@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  Pencil,
   Plus,
   RotateCcw,
   RotateCw,
@@ -21,7 +22,8 @@ import {
   fetchTasks,
   recordProgress,
   restoreTask,
-  softDeleteTask
+  softDeleteTask,
+  updateTaskDetails
 } from "./api";
 import type { RecurrenceMode, Task, TaskType } from "../shared/tasks";
 
@@ -120,6 +122,8 @@ export default function App() {
   const [progressTask, setProgressTask] = useState<Task | null>(null);
   const [progressPercent, setProgressPercent] = useState("0");
   const [progressDetails, setProgressDetails] = useState("");
+  const [noteTask, setNoteTask] = useState<Task | null>(null);
+  const [noteDetails, setNoteDetails] = useState("");
   const [recurringTask, setRecurringTask] = useState<Task | null>(null);
   const [recurringNote, setRecurringNote] = useState("");
   const [recurringValue, setRecurringValue] = useState("");
@@ -300,6 +304,34 @@ export default function App() {
     }
   }
 
+  async function handleNoteSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!noteTask) {
+      return;
+    }
+
+    if (noteDetails.trim() === (noteTask.details || "").trim()) {
+      setNoteTask(null);
+      setNoteDetails("");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+
+    try {
+      const updatedTask = await updateTaskDetails(noteTask.id, noteDetails);
+      replaceTask(updatedTask);
+      setNoteTask(null);
+      setNoteDetails("");
+    } catch (taskError) {
+      setError(taskError instanceof Error ? taskError.message : "Could not save note");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function handleDelete(task: Task) {
     setIsSaving(true);
     setError("");
@@ -344,6 +376,11 @@ export default function App() {
     setProgressTask(task);
     setProgressPercent(String(task.progress ?? 0));
     setProgressDetails(task.details || "");
+  }
+
+  function openNoteDialog(task: Task) {
+    setNoteTask(task);
+    setNoteDetails(task.details || "");
   }
 
   function openCreateDialog(category = getDefaultCreateCategory(selectedView)) {
@@ -540,6 +577,7 @@ export default function App() {
                     disabled={isSaving}
                     onComplete={startCompleteTask}
                     onProgress={openProgressDialog}
+                    onEditNote={openNoteDialog}
                     onDelete={(selectedTask) => void handleDelete(selectedTask)}
                     onRestore={(selectedTask) => void handleRestore(selectedTask)}
                   />
@@ -676,6 +714,35 @@ export default function App() {
         </Modal>
       ) : null}
 
+      {noteTask ? (
+        <Modal title="Edit Note" onClose={() => setNoteTask(null)}>
+          <form className="modal-form" onSubmit={handleNoteSubmit}>
+            <p className="modal-task-title">{noteTask.title}</p>
+            <label className="field">
+              <span>Task Note</span>
+              <textarea
+                value={noteDetails}
+                onChange={(event) => setNoteDetails(event.target.value)}
+                rows={6}
+                placeholder="Persistent notes for this task"
+              />
+            </label>
+            <div className="modal-actions">
+              <button type="button" className="text-button" onClick={() => setNoteTask(null)}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="solid-button"
+                disabled={isSaving || noteDetails.trim() === (noteTask.details || "").trim()}
+              >
+                Save Note
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
       {recurringTask ? (
         <Modal title="Complete Recurring Task" onClose={() => setRecurringTask(null)}>
           <form
@@ -735,11 +802,12 @@ interface TaskRowProps {
   disabled: boolean;
   onComplete: (task: Task) => void;
   onProgress: (task: Task) => void;
+  onEditNote: (task: Task) => void;
   onDelete: (task: Task) => void;
   onRestore: (task: Task) => void;
 }
 
-function TaskRow({ task, disabled, onComplete, onProgress, onDelete, onRestore }: TaskRowProps) {
+function TaskRow({ task, disabled, onComplete, onProgress, onEditNote, onDelete, onRestore }: TaskRowProps) {
   const Icon = typeIcons[task.type];
   const isDeleted = Boolean(task.deletedAt);
   const isDoneForCurrentPeriod = !isDeleted && isRecurringTaskDoneForCurrentPeriod(task);
@@ -829,6 +897,20 @@ function TaskRow({ task, disabled, onComplete, onProgress, onDelete, onRestore }
           </button>
         ) : (
           <>
+            <button
+              className="icon-button"
+              type="button"
+              title="Edit note"
+              aria-label={`Edit note for ${task.title}`}
+              disabled={disabled}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEditNote(task);
+              }}
+            >
+              <Pencil size={18} />
+            </button>
+
             {task.status === "active" && task.type !== "long-running" ? (
               <button
                 className="icon-button success"
