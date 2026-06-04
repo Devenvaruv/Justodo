@@ -231,8 +231,33 @@ async function updateProgress(
 
   const now = new Date().toISOString();
   const progress = clampProgress(percent);
+  const previousProgress = clampProgress(task.progress ?? 0);
   const normalizedNote = normalizeText(note);
   const completedAt = progress >= 100 ? task.completedAt || now : null;
+  const normalizedDetails = typeof details === "string" ? normalizeText(details) : undefined;
+  const hasDetailsUpdate = normalizedDetails !== undefined && normalizedDetails !== normalizeText(task.details);
+
+  if (progress < previousProgress) {
+    throw new ApiError(400, "Progress cannot be lower than the current value");
+  }
+
+  if (progress === previousProgress) {
+    if (!hasDetailsUpdate) {
+      return;
+    }
+
+    await collection.updateOne(
+      { _id: task._id },
+      {
+        $set: {
+          details: normalizedDetails,
+          updatedAt: now
+        }
+      }
+    );
+    return;
+  }
+
   const updates: Record<string, string | number | null> = {
     progress,
     status: progress >= 100 ? "completed" : "active",
@@ -240,8 +265,8 @@ async function updateProgress(
     updatedAt: now
   };
 
-  if (typeof details === "string") {
-    updates.details = normalizeText(details);
+  if (normalizedDetails !== undefined) {
+    updates.details = normalizedDetails;
   }
 
   await collection.updateOne(

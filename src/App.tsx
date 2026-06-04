@@ -180,6 +180,10 @@ export default function App() {
     () => navigationItems.find((item) => item.id === selectedView) || navigationItems[0],
     [selectedView]
   );
+  const currentProgressValue = progressTask?.progress ?? 0;
+  const progressInputValue = Math.max(currentProgressValue, getProgressInputValue(progressPercent));
+  const isProgressDetailsChanged = Boolean(progressTask && progressDetails.trim() !== (progressTask.details || "").trim());
+  const canSaveProgress = Boolean(progressTask && (progressInputValue > currentProgressValue || isProgressDetailsChanged));
 
   const visibleTasks = useMemo(() => {
     if (!isTaskCategory(selectedView)) {
@@ -268,7 +272,24 @@ export default function App() {
 
     try {
       const progress = getProgressInputValue(progressPercent);
-      const updatedTask = await recordProgress(progressTask.id, progress, `Progress set to ${progress}%`, progressDetails);
+      const currentProgress = progressTask.progress ?? 0;
+
+      if (progress < currentProgress) {
+        setProgressPercent(String(currentProgress));
+        setError("Progress cannot be lower than the current value");
+        return;
+      }
+
+      if (progress === currentProgress && progressDetails.trim() === (progressTask.details || "").trim()) {
+        return;
+      }
+
+      const updatedTask = await recordProgress(
+        progressTask.id,
+        progress,
+        progress > currentProgress ? `Progress set to ${progress}%` : "",
+        progressDetails
+      );
       replaceTask(updatedTask);
       setProgressTask(null);
       setProgressDetails("");
@@ -347,6 +368,59 @@ export default function App() {
     }
 
     void handleComplete(task);
+  }
+
+  function updateProgressFromPointer(clientX: number, element: HTMLElement) {
+    if (!progressTask) {
+      return;
+    }
+
+    const bounds = element.getBoundingClientRect();
+
+    if (!bounds.width) {
+      return;
+    }
+
+    const rawValue = ((clientX - bounds.left) / bounds.width) * 100;
+    const nextValue = Math.max(currentProgressValue, Math.min(100, Math.round(rawValue)));
+    setProgressPercent(String(nextValue));
+  }
+
+  function handleProgressPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.currentTarget.focus();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateProgressFromPointer(event.clientX, event.currentTarget);
+  }
+
+  function handleProgressPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      updateProgressFromPointer(event.clientX, event.currentTarget);
+    }
+  }
+
+  function handleProgressKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const step = event.shiftKey ? 10 : 1;
+    let nextValue = progressInputValue;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      nextValue += step;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      nextValue -= step;
+    } else if (event.key === "PageUp") {
+      nextValue += 10;
+    } else if (event.key === "PageDown") {
+      nextValue -= 10;
+    } else if (event.key === "Home") {
+      nextValue = currentProgressValue;
+    } else if (event.key === "End") {
+      nextValue = 100;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    setProgressPercent(String(Math.max(currentProgressValue, Math.min(100, Math.round(nextValue)))));
   }
 
   return (
@@ -547,28 +621,40 @@ export default function App() {
         <Modal title="Update Progress" onClose={() => setProgressTask(null)}>
           <form className="modal-form" onSubmit={handleProgressSubmit}>
             <p className="modal-task-title">{progressTask.title}</p>
-            <label className="field progress-slider-field">
+            <div className="field progress-slider-field">
               <span>Progress</span>
               <div className="progress-slider-readout">
-                <div className="progress-track">
-                  <span style={{ width: `${getProgressInputValue(progressPercent)}%` }} />
+                <div
+                  className="progress-edit-control"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Progress"
+                  aria-valuemin={currentProgressValue}
+                  aria-valuemax={100}
+                  aria-valuenow={progressInputValue}
+                  onKeyDown={handleProgressKeyDown}
+                  onPointerDown={handleProgressPointerDown}
+                  onPointerMove={handleProgressPointerMove}
+                >
+                  <div className="progress-edit-track">
+                    <span className="progress-current-fill" style={{ width: `${currentProgressValue}%` }} />
+                    <span
+                      className="progress-target-fill"
+                      style={{
+                        left: `${currentProgressValue}%`,
+                        width: `${Math.max(progressInputValue - currentProgressValue, 0)}%`
+                      }}
+                    />
+                  </div>
+                  <span className="progress-edit-handle" style={{ left: `${progressInputValue}%` }} />
                 </div>
-                <strong>{getProgressInputValue(progressPercent)}%</strong>
+                <strong>{progressInputValue}%</strong>
               </div>
-              <input
-                className="progress-range"
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={progressPercent}
-                onChange={(event) => setProgressPercent(event.target.value)}
-              />
               <div className="progress-scale" aria-hidden="true">
-                <span>0%</span>
+                <span>{currentProgressValue}%</span>
                 <span>100%</span>
               </div>
-            </label>
+            </div>
             <label className="field">
               <span>Project Note</span>
               <textarea
@@ -582,7 +668,7 @@ export default function App() {
               <button type="button" className="text-button" onClick={() => setProgressTask(null)}>
                 Cancel
               </button>
-              <button type="submit" className="solid-button" disabled={isSaving}>
+              <button type="submit" className="solid-button" disabled={isSaving || !canSaveProgress}>
                 Save Progress
               </button>
             </div>
